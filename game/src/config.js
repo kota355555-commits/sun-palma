@@ -43,21 +43,38 @@ export const PLAYER = {
   maxHealth: 100,
 };
 
-export const CAR = {
-  accel: 22,
-  brake: 34,
-  maxSpeed: 42, // ~150 km/h
-  maxReverse: 10,
-  turnRate: 1.9,
-  grip: 6.5,
-};
-
 export const POLICE = {
   maxActive: 5,
   spawnDistance: 90,
   despawnDistance: 170,
   ramDamage: 8,
   chaseSpeed: 38,
+};
+
+// Vehicle kinds: each one drives differently. The sedan is the all-rounder, the
+// box truck is slow and heavy but nearly unbreakable, the coupe is quick and
+// twitchy, and the cruiser is the PD's tuned interceptor.
+export const VEHICLE_KINDS = {
+  sedan: { label: 'Sedan', accel: 22, maxSpeed: 42, maxReverse: 10, turnRate: 1.9, grip: 6.5, health: 100, mass: 1.0, length: 4.4, wheels: 4 },
+  truck: { label: 'Box Truck', accel: 13, maxSpeed: 30, maxReverse: 8, turnRate: 1.15, grip: 5.0, health: 240, mass: 3.2, length: 6.6, wheels: 6 },
+  sport: { label: 'Coupe', accel: 30, maxSpeed: 53, maxReverse: 11, turnRate: 2.45, grip: 8.0, health: 70, mass: 0.8, length: 4.0, wheels: 4 },
+  cruiser: { label: 'PD Cruiser', accel: 25, maxSpeed: 45, maxReverse: 10, turnRate: 2.1, grip: 7.2, health: 60, mass: 1.1, length: 4.4, wheels: 4 },
+};
+
+// On-foot weapons. Fists are always available; the guns are found in the city.
+export const WEAPONS = [
+  { id: 'fists', name: 'Fists', damage: 16, range: 2.8, cooldown: 0.45, magSize: 0, pellets: 1, spread: 0, auto: false, sound: 'punch' },
+  { id: 'pistol', name: 'Pistol', damage: 20, range: 90, cooldown: 0.22, magSize: 12, pellets: 1, spread: 0.004, auto: false, sound: 'pistol' },
+  { id: 'shotgun', name: 'Shotgun', damage: 13, range: 42, cooldown: 0.85, magSize: 6, pellets: 6, spread: 0.085, auto: false, sound: 'shotgun' },
+  { id: 'smg', name: 'SMG', damage: 9, range: 60, cooldown: 0.08, magSize: 30, pellets: 1, spread: 0.03, auto: true, sound: 'smg' },
+];
+
+// Weather: rain makes the roads slick (grip) and the city darker (lamps on).
+export const WEATHER = {
+  dryGrip: 1.0,
+  wetGrip: 0.72,
+  rainMax: 1.0,
+  lampOnAt: 0.55, // night factor above this switches the streetlights on
 };
 
 // Heat points: stealing a car 40, hitting a pedestrian 60, shooting 25, speeding 2/s over 30.
@@ -71,7 +88,10 @@ export const MISSIONS = [
     title: 'Wheels',
     briefing: 'Rico needs wheels. Steal any car and bring it to the auto shop on Coral Row.',
     objective: 'Steal a car, then drive to the yellow marker.',
-    target: { x: 108, z: -54, label: 'Auto Shop' },
+    target: {
+      x: 108, z: -54,
+      label: 'Auto Shop',
+    },
     needCar: true,
     reward: 300,
   },
@@ -81,8 +101,14 @@ export const MISSIONS = [
     title: 'The Package',
     briefing: 'A package is waiting at the docks. Pick it up and deliver it to the park — no questions.',
     objective: 'Pick up the package at the docks, then deliver it to the park.',
-    target: { x: -162, z: 216, label: 'Docks' },
-    deliver: { x: -54, z: -108, label: 'Laguna Park' },
+    target: {
+      x: -162, z: 216,
+      label: 'Docks',
+    },
+    deliver: {
+      x: -54, z: -108,
+      label: 'Laguna Park',
+    },
     reward: 500,
   },
   {
@@ -90,7 +116,10 @@ export const MISSIONS = [
     name: 'MISSION 3 — HOT PURSUIT',
     title: 'The PD is on you. Lose the heat and reach the hideout under the freeway.',
     objective: 'Escape the police and reach the hideout marker.',
-    target: { x: 162, z: 162, label: 'Hideout' },
+    target: {
+      x: 162, z: 162,
+      label: 'Hideout',
+    },
     wanted: 3,
     reward: 800,
   },
@@ -100,10 +129,36 @@ export const MISSIONS = [
     title: 'The Big Score',
     briefing: 'One last job: hit the Meridian Bank vault, grab the cash, and vanish before the whole city wakes up.',
     objective: 'Reach the bank, grab the cash, then escape to the hideout.',
-    target: { x: 0, z: -162, label: 'Meridian Bank' },
-    deliver: { x: 162, z: 162, label: 'Hideout' },
+    target: {
+      x: 0, z: -162,
+      label: 'Meridian Bank',
+    },
+    deliver: {
+      x: 162, z: 162,
+      label: 'Hideout',
+    },
     wanted: 4,
     reward: 1500,
+  },
+  {
+    id: 'getaway',
+    name: 'MISSION 5 — THE GETAWAY',
+    title: 'The Getaway',
+    briefing: 'The score is done, but the storm just rolled in. Take the depot truck through the rain and reach the marina boat before the PD locks the city down.',
+    objective: 'Steal the depot truck, then drive it to the marina boat in the storm.',
+    target: {
+      x: 189, z: -81,
+      label: 'Depot Truck',
+    },
+    deliver: {
+      x: -162, z: 243,
+      label: 'Marina Boat',
+    },
+    needCar: true,
+    truckOnly: true,
+    wanted: 3,
+    weather: { rain: 0.85, time: 21.5 },
+    reward: 2000,
   },
 ];
 

@@ -1,20 +1,27 @@
-// Sun Palma — the city itself: grid streets, buildings, palms, harbour, park.
-// Everything is built from boxes and a canvas window texture; no external assets.
+// Sun Palma — the city itself, rewritten for the revision pass: grid streets,
+// buildings, palms, harbour and park, all built from boxes and one canvas
+// window texture. The layout (blocks, parks, lots, landmarks) is the same
+// city the missions navigate, but the construction is split into small
+// builders so each part reads on its own. No external assets.
+
 import * as THREE from 'three';
 import { CITY, COLORS, STREETS } from './config.js';
 import { mulberry32, range, pick } from './random.js';
 
+// One shared window texture for every building: dark facade, lit and unlit
+// windows in a staggered grid.
 function windowTexture() {
   const c = document.createElement('canvas');
-  c.width = 128; c.height = 256;
+  c.width = 128;
+  c.height = 256;
   const g = c.getContext('2d');
-  g.fillStyle = '#2c3242';
+  g.fillStyle = '#232838';
   g.fillRect(0, 0, 128, 256);
-  for (let y = 10; y < 246; y += 22) {
-    for (let x = 8; x < 120; x += 18) {
-      const lit = Math.random() < 0.42;
-      g.fillStyle = lit ? '#ffd98a' : '#3a4a63';
-      g.fillRect(x, y, 11, 14);
+  for (let row = 0; row < 11; row++) {
+    for (let col = 0; col < 6; col++) {
+      const lit = Math.random() < 0.38;
+      g.fillStyle = lit ? '#ffcf7d' : '#33415e';
+      g.fillRect(9 + col * 19, 12 + row * 22, 12, 15);
     }
   }
   const tex = new THREE.CanvasTexture(c);
@@ -29,7 +36,7 @@ export function buildWorld(scene, seed = 1) {
   const ext = CITY.extent;
   const pitch = CITY.pitch;
 
-  // --- ground, sand, water ---
+  // --- ground, beach and sea ---
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(ext * 2 + 320, ext * 2 + 320),
     new THREE.MeshLambertMaterial({ color: COLORS.ground }),
@@ -55,21 +62,22 @@ export function buildWorld(scene, seed = 1) {
   water.position.set(0, 0.05, ext + 46 + 210);
   scene.add(water);
 
-  // --- roads (north-south and east-west), flat asphalt + instanced centre dashes ---
+  // --- roads: asphalt strips plus one instanced mesh of centre dashes ---
   const roadMat = new THREE.MeshLambertMaterial({ color: 0x33363d });
+  const roadDry = new THREE.Color(0x33363d);
+  const roadWet = new THREE.Color(0x1f2229); // wet asphalt goes darker
   for (const s of STREETS) {
-    const ns = new THREE.Mesh(new THREE.PlaneGeometry(CITY.road, ext * 2 + 40), roadMat);
-    ns.rotation.x = -Math.PI / 2;
-    ns.position.set(s, 0.1, 0);
-    ns.receiveShadow = true;
-    scene.add(ns);
-    const ew = new THREE.Mesh(new THREE.PlaneGeometry(ext * 2 + 40, CITY.road), roadMat);
-    ew.rotation.x = -Math.PI / 2;
-    ew.position.set(0, 0.11, s);
-    ew.receiveShadow = true;
-    scene.add(ew);
+    const north = new THREE.Mesh(new THREE.PlaneGeometry(CITY.road, ext * 2 + 40), roadMat);
+    north.rotation.x = -Math.PI / 2;
+    north.position.set(s, 0.1, 0);
+    north.receiveShadow = true;
+    scene.add(north);
+    const east = new THREE.Mesh(new THREE.PlaneGeometry(ext * 2 + 40, CITY.road), roadMat);
+    east.rotation.x = -Math.PI / 2;
+    east.position.set(0, 0.11, s);
+    east.receiveShadow = true;
+    scene.add(east);
   }
-  // centre dashes: one instanced mesh for every street
   const dashSpots = [];
   for (const s of STREETS) {
     for (let t = -ext; t <= ext; t += 12) {
@@ -93,9 +101,10 @@ export function buildWorld(scene, seed = 1) {
   }
   scene.add(dashes);
 
-  // --- city blocks: sidewalks + buildings ---
+  // --- blocks: sidewalk slabs, then parks, lots, landmarks or buildings ---
   const parkBlocks = new Set(['-1,-2', '2,1', '-3,3', '0,-3']);
   const lotBlocks = new Set(['3,-2', '-2,2']);
+  const landmarkBlocks = new Set(['0,-4', '-2,1', '1,-1', '3,3']);
   const winTex = windowTexture();
   const boxGeo = new THREE.BoxGeometry(1, 1, 1);
   boxGeo.translate(0, 0.5, 0);
@@ -103,14 +112,16 @@ export function buildWorld(scene, seed = 1) {
   const placements = [];
   const palmSpots = [];
 
-  // Blocks holding a landmark building get no regular buildings (only the slab).
-  const landmarkBlocks = new Set(['0,-4', '-2,1', '1,-1', '3,3']);
+  function addBuilding(x, z, w, d, h, color) {
+    placements.push({ x, z, w, d, h, color });
+    colliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  }
+
   for (let bx = -CITY.half; bx < CITY.half; bx++) {
     for (let bz = -CITY.half; bz < CITY.half; bz++) {
       const cx = (bx + 0.5) * pitch;
       const cz = (bz + 0.5) * pitch;
       const key = `${bx},${bz}`;
-      // sidewalk slab
       const slab = new THREE.Mesh(
         new THREE.BoxGeometry(CITY.block + 4, 0.3, CITY.block + 4),
         new THREE.MeshLambertMaterial({ color: COLORS.sidewalk }),
@@ -124,7 +135,6 @@ export function buildWorld(scene, seed = 1) {
         continue;
       }
       if (parkBlocks.has(key)) {
-        // park: lawn + palms
         const lawn = new THREE.Mesh(
           new THREE.BoxGeometry(CITY.block - 4, 0.5, CITY.block - 4),
           new THREE.MeshLambertMaterial({ color: 0x3f8f4f }),
@@ -135,7 +145,6 @@ export function buildWorld(scene, seed = 1) {
         continue;
       }
       if (lotBlocks.has(key)) {
-        // parking lot: flat asphalt
         const lot = new THREE.Mesh(
           new THREE.BoxGeometry(CITY.block - 4, 0.4, CITY.block - 4),
           new THREE.MeshLambertMaterial({ color: 0x3a3d44 }),
@@ -144,27 +153,23 @@ export function buildWorld(scene, seed = 1) {
         scene.add(lot);
         continue;
       }
-      // 1–4 buildings per block
+      // 1, 2 or 4 buildings per block, taller near the centre
       const count = pick(rng, [1, 2, 2, 4]);
       const spots = count === 1
         ? [[0, 0, 30, 30]]
         : count === 2
           ? [[-9, 0, 16, 30], [9, 0, 16, 30]]
           : [[-9, -9, 15, 15], [9, -9, 15, 15], [-9, 9, 15, 15], [9, 9, 15, 15]];
+      const central = Math.abs(bx) + Math.abs(bz) <= 2;
       for (const [ox, oz, w, d] of spots) {
-        const distC = Math.abs(bx) + Math.abs(bz);
-        const h = range(rng, 8, distC <= 2 ? 46 : 26);
-        const x = cx + ox;
-        const z = cz + oz;
-        placements.push({ x, z, w, d, h, color: pick(rng, COLORS.buildingPalette) });
-        colliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+        const h = range(rng, 8, central ? 46 : 26);
+        addBuilding(cx + ox, cz + oz, w, d, h, pick(rng, COLORS.buildingPalette));
       }
-      // palms along the block edge
       for (let i = 0; i < 2; i++) palmSpots.push([cx + range(rng, -18, 18), cz + (rng() < 0.5 ? -19 : 19)]);
     }
   }
 
-  // Landmark buildings (taller, distinct) near the mission spots, on block centres.
+  // Landmark buildings (taller, distinct) near the mission spots.
   const landmarkDefs = [
     { name: 'bank', x: 27, z: -189, w: 26, h: 52, color: 0xcfd8e6 },
     { name: 'hospital', x: -81, z: 81, w: 24, h: 30, color: 0xf2f2ee },
@@ -173,8 +178,7 @@ export function buildWorld(scene, seed = 1) {
     { name: 'docks', x: -189, z: 216, w: 22, h: 10, color: 0x8a6f4d },
   ];
   for (const lm of landmarkDefs) {
-    placements.push({ x: lm.x, z: lm.z, w: lm.w, d: lm.w, h: lm.h, color: lm.color });
-    colliders.push({ minX: lm.x - lm.w / 2, maxX: lm.x + lm.w / 2, minZ: lm.z - lm.w / 2, maxZ: lm.z + lm.w / 2 });
+    addBuilding(lm.x, lm.z, lm.w, lm.w, lm.h, lm.color);
     landmarks[lm.name] = lm;
   }
 
@@ -191,20 +195,22 @@ export function buildWorld(scene, seed = 1) {
   inst.receiveShadow = true;
   scene.add(inst);
 
-  // Rooftop neon signs on tall buildings.
-  const signMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
-  const signMat2 = new THREE.MeshBasicMaterial({ color: 0x35e0ff });
+  // Rooftop neon signs on the tall towers.
+  const signMats = [
+    new THREE.MeshBasicMaterial({ color: 0xff4d6d }),
+    new THREE.MeshBasicMaterial({ color: 0x35e0ff }),
+  ];
   let signCount = 0;
   for (const p of placements) {
     if (p.h > 30 && signCount < 10) {
-      const sign = new THREE.Mesh(new THREE.BoxGeometry(6, 1.6, 0.4), signCount % 2 ? signMat : signMat2);
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(6, 1.6, 0.4), signMats[signCount % 2]);
       sign.position.set(p.x, p.h + 0.8, p.z - p.d / 2 - 0.2);
       scene.add(sign);
       signCount++;
     }
   }
 
-  // --- palms (instanced trunks + crowns) ---
+  // --- palms: instanced trunks and crowns ---
   const trunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 7, 6);
   trunkGeo.translate(0, 3.5, 0);
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8a6f4d });
@@ -230,6 +236,8 @@ export function buildWorld(scene, seed = 1) {
   const headGeo = new THREE.SphereGeometry(0.45, 8, 6);
   headGeo.translate(0, 6.1, 0);
   const headMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8 });
+  const lampDim = new THREE.Color(0x6b5f45); // heads barely glow by day
+  const lampBright = new THREE.Color(0xffe9a8); // full warm glow at night
   const lightSpots = [];
   for (const s of STREETS) {
     for (let t = -ext; t <= ext; t += 54) {
@@ -247,7 +255,7 @@ export function buildWorld(scene, seed = 1) {
   scene.add(poles);
   scene.add(heads);
 
-  // --- harbour: pier, containers, crane ---
+  // --- harbour: pier, stacked containers, one crane ---
   const pier = new THREE.Mesh(
     new THREE.BoxGeometry(90, 1, 16),
     new THREE.MeshLambertMaterial({ color: 0x6b5d4f }),
@@ -276,39 +284,47 @@ export function buildWorld(scene, seed = 1) {
   crane.position.set(-120, 0.5, ext + 20);
   scene.add(crane);
 
-  return { colliders, landmarks, ext, palmSpots };
+  // Night and weather dressing, driven by the weather module each frame:
+  // streetlight heads brighten as the night factor rises, roads darken as
+  // the rain soaks them.
+  function setNightLights(factor) {
+    headMat.color.copy(lampDim).lerp(lampBright, THREE.MathUtils.clamp(factor, 0, 1));
+  }
+  function setWetRoads(wet) {
+    roadMat.color.copy(roadDry).lerp(roadWet, THREE.MathUtils.clamp(wet, 0, 1));
+  }
+
+  return { colliders, landmarks, ext, palmSpots, setNightLights, setWetRoads };
 }
 
 export function clampToCity(x, z, ext, margin = 4) {
+  const lo = -ext - margin;
+  const hi = ext + margin;
   return {
-    x: Math.max(-ext - margin, Math.min(ext + margin, x)),
-    z: Math.max(-ext - margin, Math.min(ext + 60, z)),
+    x: THREE.MathUtils.clamp(x, lo, hi),
+    z: THREE.MathUtils.clamp(z, lo, ext + 60),
   };
 }
 
-// Is the point on a road (within road width of a street line)?
+// Is the point on a road (within half a road width of a street line)?
 export function onRoad(x, z) {
   const w = CITY.road / 2 + 0.5;
-  for (const s of STREETS) {
-    if (Math.abs(x - s) < w || Math.abs(z - s) < w) return true;
-  }
-  return false;
+  return STREETS.some((s) => Math.abs(x - s) < w || Math.abs(z - s) < w);
 }
 
 // Nearest point on the road network (snaps one axis to the closest street).
 export function snapToRoad(x, z) {
-  let bestX = STREETS[0];
-  let bestZ = STREETS[0];
-  for (const s of STREETS) {
-    if (Math.abs(s - x) < Math.abs(bestX - x)) bestX = s;
-    if (Math.abs(s - z) < Math.abs(bestZ - z)) bestZ = s;
-  }
-  if (Math.abs(bestX - x) <= Math.abs(bestZ - z)) return { x: bestX, z };
-  return { x, z: bestZ };
+  const nearest = (v) => STREETS.reduce(
+    (best, s) => (Math.abs(s - v) < Math.abs(best - v) ? s : best),
+    STREETS[0],
+  );
+  const bx = nearest(x);
+  const bz = nearest(z);
+  return Math.abs(bx - x) <= Math.abs(bz - z) ? { x: bx, z } : { x, z: bz };
 }
 
 export function randomStreetPoint(rng, ext) {
-  const s = pick(rng, STREETS);
-  const t = range(rng, -ext, ext);
-  return rng() < 0.5 ? { x: s, z: t } : { x: t, z: s };
+  const street = pick(rng, STREETS);
+  const along = range(rng, -ext, ext);
+  return rng() < 0.5 ? { x: street, z: along } : { x: along, z: street };
 }

@@ -10,13 +10,31 @@
   #app canvas { display: block; }
   .hidden { display: none !important; }
   #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; z-index: 5; }
-  #topbar { position: absolute; top: 14px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
-  .panel { background: rgba(8, 12, 24, 0.62); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(2px); }
+  #topbar {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .panel {
+    background: rgba(8, 12, 24, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    padding: 10px 14px;
+    backdrop-filter: blur(2px);
+  }
   #stats { min-width: 240px; }
   #cash { font-size: 26px; font-weight: 800; color: #7dff9b; letter-spacing: 0.5px; }
   #healthwrap { margin-top: 6px; }
-  #healthbar-outer { width: 210px; height: 12px; background: rgba(255,255,255,0.18); border-radius: 6px; overflow: hidden; }
-  #healthbar { height: 100%; width: 100%; background: linear-gradient(90deg, #37e05e, #a4ff6a); border-radius: 6px; }
+  #healthbar-outer, #car-healthbar-outer { width: 210px; background: rgba(255,255,255,0.18); border-radius: 6px; overflow: hidden; }
+  #healthbar-outer { height: 12px; }
+  #car-healthbar-outer { height: 8px; margin-top: 5px; border-radius: 4px; }
+  #healthbar, #car-healthbar { height: 100%; width: 100%; border-radius: 6px; }
+  #healthbar { background: linear-gradient(90deg, #37e05e, #a4ff6a); }
+  #car-healthbar { background: linear-gradient(90deg, #37e05e, #a4ff6a); border-radius: 4px; }
   #healthtext { font-size: 12px; opacity: 0.9; margin-top: 3px; }
   #wanted { text-align: right; }
   #stars { font-size: 30px; letter-spacing: 4px; color: #ffd23e; text-shadow: 0 2px 8px rgba(0,0,0,0.7); line-height: 1; }
@@ -36,14 +54,43 @@
   #feed div { background: rgba(8,12,24,0.55); border-radius: 6px; padding: 4px 10px; margin-top: 4px; }
   #hint { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 12px; opacity: 0.75; text-shadow: 0 1px 3px rgba(0,0,0,0.9); white-space: nowrap; }
   #crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; color: rgba(255,255,255,0.9); text-shadow: 0 0 4px #000; }
+  #weather-chip { font-size: 12px; font-weight: 700; margin-top: 4px; color: #9fd4ff; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+  #weapon-name { color: #ffd23e; }
+  #mission-list { margin-top: 18px; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto; }
+  #mission-list .job { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 7px 10px; margin-top: 6px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; cursor: pointer; }
+  #mission-list .job.current { border-color: #ffd23e; }
+  #mission-list .job.locked { opacity: 0.45; cursor: default; }
+  #mission-list .job .reward { color: #7dff9b; font-weight: 700; }
   .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 10; background: radial-gradient(ellipse at center, rgba(10, 18, 40, 0.55) 0%, rgba(4, 6, 16, 0.88) 100%); color: #fff; }
   .card { max-width: 640px; width: 92%; text-align: center; padding: 34px 30px; background: rgba(10, 16, 34, 0.72); border: 1px solid rgba(255, 210, 62, 0.45); border-radius: 16px; box-shadow: 0 10px 60px rgba(0,0,0,0.6); }
-  .card h1 { margin: 0; font-size: 64px; letter-spacing: 6px; font-weight: 900; color: #ffd23e; text-shadow: 0 4px 0 #c94f1e, 0 8px 24px rgba(0,0,0,0.8); font-family: Impact, "Arial Black", sans-serif; }
+  .card h1 {
+    margin: 0;
+    font-size: 64px;
+    letter-spacing: 6px;
+    font-weight: 900;
+    color: #ffd23e;
+    text-shadow: 0 4px 0 #c94f1e, 0 8px 24px rgba(0,0,0,0.8);
+    font-family: Impact, "Arial Black", sans-serif;
+  }
   .card h2 { margin: 2px 0 0; font-size: 15px; letter-spacing: 5px; color: #7fd4ff; font-weight: 600; }
   .card p { font-size: 15px; line-height: 1.6; color: #e8ecf5; }
   .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; text-align: left; font-size: 13.5px; margin: 16px auto 4px; max-width: 480px; }
   .controls b { color: #ffd23e; }
-  .btn { pointer-events: auto; cursor: pointer; display: inline-block; margin-top: 18px; padding: 13px 34px; font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #1a1200; background: linear-gradient(180deg, #ffe066, #ffb52e); border: none; border-radius: 10px; box-shadow: 0 4px 0 #b97a12, 0 8px 20px rgba(0,0,0,0.5); }
+  .btn {
+    pointer-events: auto;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 18px;
+    padding: 13px 34px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #1a1200;
+    background: linear-gradient(180deg, #ffe066, #ffb52e);
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 0 #b97a12, 0 8px 20px rgba(0,0,0,0.5);
+  }
   .btn:hover { filter: brightness(1.07); }
   .btn.secondary { background: linear-gradient(180deg, #dfe7f5, #9fb2d1); box-shadow: 0 4px 0 #5d6f8f, 0 8px 20px rgba(0,0,0,0.5); margin-left: 10px; }
   .small { font-size: 12px; opacity: 0.65; margin-top: 16px; }
@@ -62,6 +109,7 @@
     <div id="stats" class="panel">
       <div id="cash">$0</div>
       <div id="healthwrap"><div id="healthbar-outer"><div id="healthbar"></div></div><div id="healthtext">Health 100</div></div>
+      <div id="car-health" class="hidden"><div id="car-healthbar-outer"><div id="car-healthbar"></div></div><div id="healthtext">Car</div></div>
     </div>
     <div id="objective" class="panel">
       <div class="mission" id="mission-name">SUN PALMA</div>
@@ -71,13 +119,14 @@
     <div id="wanted">
       <div id="stars"><span class="off">★</span><span class="off">★</span><span class="off">★</span><span class="off">★</span><span class="off">★</span></div>
       <div id="clock">12:00</div>
+      <div id="weather-chip">12:00 · CLEAR</div>
     </div>
   </div>
   <div id="speedo" class="hidden"><span id="speed">0</span><div id="speedunit">km/h</div></div>
-  <div id="ammo" class="panel hidden">🔫 <span id="ammo-count">12 / 12</span></div>
+  <div id="ammo" class="panel hidden">🔫 <span id="weapon-name">Pistol</span> · <span id="ammo-count">12 / 12</span></div>
   <div id="feed"></div>
   <div id="minimap-wrap"><canvas id="minimap" width="200" height="200"></canvas></div>
-  <div id="hint">WASD move &nbsp;·&nbsp; E enter / steal car &nbsp;·&nbsp; Click shoot &nbsp;·&nbsp; R reload &nbsp;·&nbsp; Shift run &nbsp;·&nbsp; M mute &nbsp;·&nbsp; P pause</div>
+  <div id="hint">WASD move &nbsp;·&nbsp; E enter / steal car &nbsp;·&nbsp; Click shoot &nbsp;·&nbsp; R reload &nbsp;·&nbsp; Q weapon &nbsp;·&nbsp; T retry job &nbsp;·&nbsp; Shift run &nbsp;·&nbsp; M mute &nbsp;·&nbsp; P pause</div>
   <div id="crosshair" class="hidden">＋</div>
 </div>
 
@@ -105,6 +154,7 @@
     <p>Take a breath. The city waits.</p>
     <button class="btn" id="resume-btn">RESUME</button>
     <button class="btn secondary" id="restart-btn">RESTART DAY</button>
+    <div id="mission-list"></div>
   </div>
 </div>
 

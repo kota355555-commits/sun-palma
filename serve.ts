@@ -10,36 +10,54 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('./game', import.meta.url)));
 const args = process.argv.slice(2);
 const portIndex = args.indexOf('--port');
-const requested = portIndex === -1 ? 8080 : Number(args[portIndex + 1]);
+const fromFlag = portIndex === -1 ? Number.NaN : Number(args[portIndex + 1]);
+const fromEnv = Number(process.env.PORT);
+const requested = Number.isInteger(fromFlag) ? fromFlag : fromEnv;
 const port = Number.isInteger(requested) && requested > 0 && requested < 65536 ? requested : 8080;
 
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
-  '.glb': 'model/gltf-binary',
-  '.gltf': 'model/gltf+json',
-  '.bin': 'application/octet-stream',
-  '.wasm': 'application/wasm',
-  '.wav': 'audio/wav',
-  '.mp3': 'audio/mpeg',
-  '.ogg': 'audio/ogg',
-  '.txt': 'text/plain; charset=utf-8',
-};
+const MIME: Record<string, string> = Object.fromEntries([
+  ['.html', 'text/html; charset=utf-8'],
+  ['.js', 'text/javascript; charset=utf-8'],
+  ['.mjs', 'text/javascript; charset=utf-8'],
+  ['.css', 'text/css; charset=utf-8'],
+  ['.json', 'application/json; charset=utf-8'],
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.gif', 'image/gif'],
+  ['.webp', 'image/webp'],
+  ['.svg', 'image/svg+xml'],
+  ['.ico', 'image/x-icon'],
+  ['.woff2', 'font/woff2'],
+  ['.glb', 'model/gltf-binary'],
+  ['.gltf', 'model/gltf+json'],
+  ['.bin', 'application/octet-stream'],
+  ['.wasm', 'application/wasm'],
+  ['.wav', 'audio/wav'],
+  ['.mp3', 'audio/mpeg'],
+  ['.ogg', 'audio/ogg'],
+  ['.txt', 'text/plain; charset=utf-8'],
+]);
 
 createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://localhost');
-  let pathname: string;
+  // one log line per request: time, method, path, status and how long it took
+  const started = Date.now();
+  const method = request.method ?? 'GET';
+  const rawUrl = request.url ?? '/';
+  response.on('finish', () => {
+    const ms = Date.now() - started;
+    console.log(`[${new Date().toISOString()}] ${method} ${rawUrl} -> ${response.statusCode} (${ms}ms)`);
+  });
+  serveFile(rawUrl, response);
+}).listen(port, '127.0.0.1', () => {
+  console.log(`game/ is on http://localhost:${port}`);
+});
+
+// Resolve a request path to a file under game/ and stream it back, or answer
+// 400/403/404 for anything that is not a plain file inside the root.
+function serveFile(rawUrl, response) {
+  const url = new URL(rawUrl, 'http://localhost');
+  let pathname;
   try {
     pathname = decodeURIComponent(url.pathname);
   } catch {
@@ -52,7 +70,7 @@ createServer((request, response) => {
     response.writeHead(403).end('forbidden');
     return;
   }
-  let size: number;
+  let size;
   try {
     const stats = statSync(file);
     if (!stats.isFile()) throw new Error('not a file');
@@ -67,6 +85,4 @@ createServer((request, response) => {
     'cache-control': 'no-store',
   });
   createReadStream(file).pipe(response);
-}).listen(port, '127.0.0.1', () => {
-  console.log(`game/ is on http://localhost:${port}`);
-});
+}
